@@ -2,8 +2,8 @@
 
 This started from a copy of `UdpFramed` from `tokio-util` with a few modifications that provides a somewhat different API:
 
-- There are `UpdFramedRecv` and `UdpFramedSend` types for specifically `send` and `recv` in `Sink`/`Stream`
 - All `UdpFramed` types take a `Borrow<UdpSocket>` so you can pass an `Arc<UdpSocket>` or `&UdpSocket`
+- There are `UpdFramedRecv` and `UdpFramedSend` types for specifically `send` and `recv` in `Sink`/`Stream`
 - Because of the above, you can no longer consume `UdpFramed` to get your `UdpSocket` back
 
 The main benefit can be easily explained in an example:
