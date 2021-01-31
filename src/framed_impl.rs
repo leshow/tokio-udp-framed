@@ -113,9 +113,9 @@ impl BorrowMut<WriteFrame> for RWFrames {
 
 pin_project! {
     #[derive(Debug)]
-    pub(crate) struct UdpFramedImpl<U, State> {
+    pub(crate) struct UdpFramedImpl<T, U, State> {
         #[pin]
-        pub(crate) inner: UdpSocket,
+        pub(crate) inner: T,
         pub(crate) state: State,
         pub(crate) codec: U,
         pub(crate) current_addr: Option<SocketAddr>,
@@ -127,8 +127,9 @@ pin_project! {
 pub(crate) const INITIAL_RD_CAPACITY: usize = 64 * 1024;
 pub(crate) const INITIAL_WR_CAPACITY: usize = 8 * 1024;
 
-impl<C, R> Stream for UdpFramedImpl<C, R>
+impl<T, C, R> Stream for UdpFramedImpl<T, C, R>
 where
+    T: Borrow<UdpSocket>,
     C: Decoder,
     R: BorrowMut<ReadFrame>,
 {
@@ -164,7 +165,7 @@ where
                     &mut *(read_state.buffer.chunk_mut() as *mut _ as *mut [MaybeUninit<u8>]);
                 let mut read = ReadBuf::uninit(buf);
                 let ptr = read.filled().as_ptr();
-                let res = ready!(pin.inner.poll_recv_from(cx, &mut read));
+                let res = ready!((*pin.inner).borrow().poll_recv_from(cx, &mut read));
 
                 assert_eq!(ptr, read.filled().as_ptr());
                 let addr = res?;
@@ -178,8 +179,9 @@ where
     }
 }
 
-impl<I, C, W> Sink<(I, SocketAddr)> for UdpFramedImpl<C, W>
+impl<T, I, C, W> Sink<(I, SocketAddr)> for UdpFramedImpl<T, C, W>
 where
+    T: Borrow<UdpSocket>,
     C: Encoder<I>,
     C::Error: From<io::Error>,
     W: BorrowMut<WriteFrame>,
@@ -217,8 +219,8 @@ where
         }
 
         let write_state: &mut WriteFrame = pin.state.borrow_mut();
-        let n = ready!(pin
-            .inner
+        let n = ready!((*pin.inner)
+            .borrow()
             .poll_send_to(cx, &write_state.buffer, *pin.out_addr))?;
 
         let wrote_all = n == write_state.buffer.len();

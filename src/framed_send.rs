@@ -8,6 +8,7 @@ use tokio::net::UdpSocket;
 use bytes::BytesMut;
 use futures_sink::Sink;
 use std::{
+    borrow::Borrow,
     fmt, io,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     pin::Pin,
@@ -19,17 +20,20 @@ pin_project! {
     ///
     /// [`Sink`]: futures_sink::Sink
     #[cfg_attr(docsrs, doc(all(feature = "codec", feature = "udp")))]
-    pub struct UdpFramedSend<C> {
+    pub struct UdpFramedSend<T, C> {
         #[pin]
-        inner: UdpFramedImpl<C, WriteFrame>,
+        inner: UdpFramedImpl<T, C, WriteFrame>,
     }
 }
 
-impl<C> UdpFramedSend<C> {
+impl<T, C> UdpFramedSend<T, C>
+where
+    T: Borrow<UdpSocket>,
+{
     /// Create a new `UdpFramed` backed by the given socket and codec.
     ///
     /// See struct level documentation for more details.
-    pub fn new(socket: UdpSocket, codec: C) -> UdpFramedSend<C> {
+    pub fn new(socket: T, codec: C) -> UdpFramedSend<T, C> {
         Self {
             inner: UdpFramedImpl {
                 codec,
@@ -52,19 +56,7 @@ impl<C> UdpFramedSend<C> {
     /// coming in as it may corrupt the stream of frames otherwise being worked
     /// with.
     pub fn get_ref(&self) -> &UdpSocket {
-        &self.inner.inner
-    }
-
-    /// Returns a mutable reference to the underlying I/O stream wrapped by
-    /// `UdpFramed`.
-    ///
-    /// # Note
-    ///
-    /// Care should be taken to not tamper with the underlying stream of data
-    /// coming in as it may corrupt the stream of frames otherwise being worked
-    /// with.
-    pub fn get_mut(&mut self) -> &mut UdpSocket {
-        &mut self.inner.inner
+        self.inner.inner.borrow()
     }
 
     /// Returns a reference to the underlying codec wrapped by
@@ -86,14 +78,15 @@ impl<C> UdpFramedSend<C> {
     }
 
     /// Consumes the `Framed`, returning its underlying I/O stream.
-    pub fn into_inner(self) -> UdpSocket {
+    pub fn into_inner(self) -> T {
         self.inner.inner
     }
 }
 
 // This impl just defers to the underlying FramedImpl
-impl<I, U> Sink<(I, SocketAddr)> for UdpFramedSend<U>
+impl<T, I, U> Sink<(I, SocketAddr)> for UdpFramedSend<T, U>
 where
+    T: Borrow<UdpSocket>,
     U: Encoder<I>,
     U::Error: From<io::Error>,
 {
@@ -116,8 +109,9 @@ where
     }
 }
 
-impl<C> fmt::Debug for UdpFramedSend<C>
+impl<T, C> fmt::Debug for UdpFramedSend<T, C>
 where
+    T: Borrow<UdpSocket>,
     C: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

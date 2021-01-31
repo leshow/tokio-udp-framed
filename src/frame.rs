@@ -9,6 +9,7 @@ use tokio_stream::Stream;
 use bytes::BytesMut;
 use futures_sink::Sink;
 use std::{
+    borrow::Borrow,
     fmt, io,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     pin::Pin,
@@ -37,14 +38,15 @@ pin_project! {
     /// [`Sink`]: futures_sink::Sink
     /// [`split`]: https://docs.rs/futures/0.3/futures/stream/trait.StreamExt.html#method.split.
     #[cfg_attr(docsrs, doc(all(feature = "codec", feature = "udp")))]
-    pub struct UdpFramed<C> {
+    pub struct UdpFramed<T, C> {
         #[pin]
-        inner: UdpFramedImpl<C, RWFrames>,
+        inner: UdpFramedImpl<T, C, RWFrames>,
     }
 }
 
-impl<C> Stream for UdpFramed<C>
+impl<T, C> Stream for UdpFramed<T, C>
 where
+    T: Borrow<UdpSocket>,
     C: Decoder,
 {
     type Item = Result<(C::Item, SocketAddr), C::Error>;
@@ -55,8 +57,9 @@ where
 }
 
 // This impl just defers to the underlying FramedImpl
-impl<I, C> Sink<(I, SocketAddr)> for UdpFramed<C>
+impl<T, I, C> Sink<(I, SocketAddr)> for UdpFramed<T, C>
 where
+    T: Borrow<UdpSocket>,
     C: Encoder<I>,
     C::Error: From<io::Error>,
 {
@@ -79,11 +82,14 @@ where
     }
 }
 
-impl<C> UdpFramed<C> {
+impl<T, C> UdpFramed<T, C>
+where
+    T: Borrow<UdpSocket>,
+{
     /// Create a new `UdpFramed` backed by the given socket and codec.
     ///
     /// See struct level documentation for more details.
-    pub fn new(socket: UdpSocket, codec: C) -> UdpFramed<C> {
+    pub fn new(socket: T, codec: C) -> UdpFramed<T, C> {
         Self {
             inner: UdpFramedImpl {
                 inner: socket,
@@ -112,19 +118,7 @@ impl<C> UdpFramed<C> {
     /// coming in as it may corrupt the stream of frames otherwise being worked
     /// with.
     pub fn get_ref(&self) -> &UdpSocket {
-        &self.inner.inner
-    }
-
-    /// Returns a mutable reference to the underlying I/O stream wrapped by
-    /// `Framed`.
-    ///
-    /// # Note
-    ///
-    /// Care should be taken to not tamper with the underlying stream of data
-    /// coming in as it may corrupt the stream of frames otherwise being worked
-    /// with.
-    pub fn get_mut(&mut self) -> &mut UdpSocket {
-        &mut self.inner.inner
+        &self.inner.inner.borrow()
     }
 
     /// Returns a reference to the underlying codec wrapped by
@@ -166,13 +160,14 @@ impl<C> UdpFramed<C> {
     }
 
     /// Consumes the `Framed`, returning its underlying I/O stream.
-    pub fn into_inner(self) -> UdpSocket {
+    pub fn into_inner(self) -> T {
         self.inner.inner
     }
 }
 
-impl<C> fmt::Debug for UdpFramed<C>
+impl<T, C> fmt::Debug for UdpFramed<T, C>
 where
+    T: Borrow<UdpSocket>,
     C: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
