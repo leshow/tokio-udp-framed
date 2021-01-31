@@ -10,7 +10,7 @@ use futures_sink::Sink;
 use std::{
     borrow::Borrow,
     fmt, io,
-    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+    net::SocketAddr,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -19,7 +19,6 @@ pin_project! {
     /// A [`Sink`] of frames encoded for udp.
     ///
     /// [`Sink`]: futures_sink::Sink
-    #[cfg_attr(docsrs, doc(all(feature = "codec", feature = "udp")))]
     pub struct UdpFramedSend<T, C> {
         #[pin]
         inner: UdpFramedImpl<T, C, WriteFrame>,
@@ -42,7 +41,7 @@ where
                 },
                 inner: socket,
                 current_addr: None,
-                out_addr: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 0)),
+                out_addr: ([0, 0, 0, 0], 0).into(),
                 flushed: true,
             },
         }

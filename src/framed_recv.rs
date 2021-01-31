@@ -10,7 +10,7 @@ use bytes::BytesMut;
 use std::{
     borrow::Borrow,
     fmt,
-    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+    net::SocketAddr,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -20,7 +20,6 @@ pin_project! {
     ///
     /// [`Stream`]: tokio::stream::Stream
     /// [`AsyncRead`]: tokio::udp::UdpSocket
-    #[cfg_attr(docsrs, doc(all(feature = "codec", feature = "udp")))]
     pub struct UdpFramedRecv<T, C> {
         #[pin]
         inner: UdpFramedImpl<T, C, ReadFrame>,
@@ -44,7 +43,7 @@ where
                 },
                 inner: socket,
                 current_addr: None,
-                out_addr: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 0)),
+                out_addr: ([0, 0, 0, 0], 0).into(),
                 flushed: true,
             },
         }
