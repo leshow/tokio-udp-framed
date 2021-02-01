@@ -4,7 +4,7 @@ This started from a copy of `UdpFramed` from `tokio-util` with a few modificatio
 
 - All `UdpFramed` types take a `Borrow<UdpSocket>` so you can pass an `Arc<UdpSocket>` or `&UdpSocket`
 - There are `UpdFramedRecv` and `UdpFramedSend` types for specifically `send` and `recv` in `Sink`/`Stream`
-- Because of the above, you can no longer consume `UdpFramed` to get your `UdpSocket` back
+- Because of `Borrow<UdpSocket>` you can't use `get_mut` anymore
 
 The main benefit can be easily explained in an example:
 
