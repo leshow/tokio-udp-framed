@@ -3,7 +3,14 @@ name = "tokio-udp-framed"
 version = "0.1.0"
 authors = ["Evan Cameron <cameron.evan@gmail.com>"]
 edition = "2018"
-
+description = """
+Based on UdpFramed from tokio-util but with some quality of life modifications to support shared ownership of `UdpSocket`
+and to split Send/Recv into their own types.
+"""
+categories = ["asynchronous", "network-programming"]
+keywords = ["async", "udp", "tokio"]
+repository = "https://github.com/leshow/tokio-udp-framed"
+license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
