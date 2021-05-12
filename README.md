@@ -1,6 +1,8 @@
-# tokio-udp-framed (Update!)
+# tokio-udp-framed (Changes merged into tokio-util!)
 
-**Update** Was able to merge code into `tokio-util` that provides this functionality without breaking the API (thanks Darksonn!). So this crate is effectively dead and you should use `tokio-util` ([link to pr](https://github.com/tokio-rs/tokio/pull/3451))
+**Update** Was able to merge code into `tokio-util` that provides the main functionality, taking a `Borrow<UdpSocket>`, without breaking the API (thanks Darksonn!). So this crate is effectively dead and you should use `tokio-util` ([link to pr](https://github.com/tokio-rs/tokio/pull/3451))
+
+---
 
 This started from a copy of `UdpFramed` from `tokio-util` with a few modifications that provides a somewhat different API:
 
